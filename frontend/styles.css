@@ -1,0 +1,391 @@
+@import url("https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Sora:wght@600;700&display=swap");
+
+:root {
+    --bg: #f5f7fb;
+    --surface: #ffffff;
+    --ink: #1d2939;
+    --muted: #5f6b7a;
+    --border: #d9e1ec;
+    --primary: #145da0;
+    --primary-soft: #e8f1fc;
+    --accent: #0b8f6a;
+    --warning: #b76e00;
+    --danger: #bf1f2f;
+    --shadow: 0 14px 30px rgba(20, 41, 57, 0.09);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    min-height: 100vh;
+    font-family: "Nunito Sans", "Segoe UI", sans-serif;
+    color: var(--ink);
+    background:
+        radial-gradient(circle at 10% 0%, #e5f0ff 0, transparent 30%),
+        radial-gradient(circle at 100% 100%, #d9f8ef 0, transparent 30%),
+        var(--bg);
+}
+
+.container {
+    width: min(1100px, 92%);
+    margin: 0 auto;
+}
+
+.site-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(6px);
+    background: rgba(255, 255, 255, 0.84);
+}
+
+.nav-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 72px;
+    gap: 12px;
+}
+
+.brand {
+    font-family: "Sora", "Segoe UI", sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.nav-menu {
+    display: flex;
+    gap: 8px;
+}
+
+.nav-menu a {
+    text-decoration: none;
+    color: var(--ink);
+    font-weight: 700;
+    padding: 9px 12px;
+    border-radius: 10px;
+}
+
+.nav-menu a:hover {
+    background: var(--primary-soft);
+}
+
+.menu-button {
+    display: none;
+    border: 1px solid var(--border);
+    background: #fff;
+    border-radius: 9px;
+    padding: 7px 10px;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.page-main {
+    padding: 28px 0 42px;
+    display: grid;
+    gap: 16px;
+}
+
+.panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    padding: 20px;
+}
+
+.hero {
+    padding: 24px;
+}
+
+.kicker {
+    margin: 0 0 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+    font-size: 0.82rem;
+    font-weight: 800;
+}
+
+h1,
+h2,
+h3 {
+    margin-top: 0;
+    font-family: "Sora", "Segoe UI", sans-serif;
+}
+
+.hero h1 {
+    font-size: clamp(1.8rem, 3.2vw, 2.5rem);
+    margin-bottom: 8px;
+}
+
+.hero-copy {
+    margin: 0;
+    color: var(--muted);
+}
+
+.stats-grid {
+    margin-top: 16px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.stat-card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #fcfdff;
+    padding: 14px;
+}
+
+.stat-card p {
+    margin: 0;
+    color: var(--muted);
+    font-weight: 700;
+}
+
+.stat-card h2 {
+    margin: 6px 0 0;
+    font-size: 1.85rem;
+}
+
+.api-config {
+    margin-top: 16px;
+}
+
+.api-config small {
+    color: var(--muted);
+}
+
+.api-config-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    margin: 6px 0;
+}
+
+.section-head {
+    margin-bottom: 12px;
+}
+
+.section-head p {
+    margin: 6px 0 0;
+    color: var(--muted);
+}
+
+.section-head-inline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.form-grid {
+    display: grid;
+    gap: 10px;
+    max-width: 560px;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 700;
+}
+
+input {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 1rem;
+}
+
+input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.search-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.btn {
+    border: none;
+    border-radius: 10px;
+    padding: 10px 13px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: #fff;
+}
+
+.btn-outline {
+    background: #fff;
+    border: 1px solid var(--border);
+    color: var(--ink);
+}
+
+.btn-accent {
+    background: var(--accent);
+    color: #fff;
+}
+
+.btn-warning {
+    background: var(--warning);
+    color: #fff;
+}
+
+.btn-success {
+    background: var(--accent);
+    color: #fff;
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: #fff;
+}
+
+.table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.books-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+}
+
+.books-table th,
+.books-table td {
+    text-align: left;
+    padding: 11px;
+    border-bottom: 1px solid #eef2f8;
+}
+
+.books-table th {
+    background: #f2f6fc;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.status-pill {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 0.85rem;
+    font-weight: 800;
+}
+
+.status-pill.available {
+    background: #e8fff7;
+    color: var(--accent);
+}
+
+.status-pill.issued {
+    background: #fff5e6;
+    color: var(--warning);
+}
+
+.actions-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.empty-text {
+    margin: 10px 0 0;
+    color: var(--muted);
+    font-weight: 700;
+}
+
+.flash-message {
+    border-radius: 12px;
+    padding: 11px 12px;
+    font-weight: 700;
+}
+
+.flash-message.success {
+    background: #e8fff7;
+    color: var(--accent);
+    border: 1px solid #bdecd9;
+}
+
+.flash-message.error {
+    background: #ffecef;
+    color: var(--danger);
+    border: 1px solid #f5c3cb;
+}
+
+.hidden {
+    display: none;
+}
+
+@media (max-width: 900px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .section-head-inline {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+@media (max-width: 760px) {
+    .menu-button {
+        display: inline-flex;
+    }
+
+    .nav-menu {
+        position: absolute;
+        right: 4%;
+        top: 70px;
+        width: min(300px, 92vw);
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+        padding: 10px;
+        display: none;
+        flex-direction: column;
+    }
+
+    .nav-menu.open {
+        display: flex;
+    }
+
+    .api-config-row,
+    .search-row {
+        grid-template-columns: 1fr;
+    }
+
+    .actions-group {
+        flex-direction: column;
+    }
+
+    .actions-group .btn {
+        width: 100%;
+    }
+}

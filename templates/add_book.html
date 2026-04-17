@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Add Book | Library Management System{% endblock %}
+
+{% block content %}
+<section class="section-head">
+    <h1>Add a New Book</h1>
+    <p>Fill in book details. New books are saved as available by default.</p>
+</section>
+
+<form class="form-card" method="post" action="{{ url_for('add_book') }}">
+    <div class="input-group">
+        <label for="title">Book Title</label>
+        <input
+            type="text"
+            id="title"
+            name="title"
+            value="{{ form_data['title'] }}"
+            maxlength="120"
+            required
+        >
+    </div>
+
+    <div class="input-group">
+        <label for="author">Author Name</label>
+        <input
+            type="text"
+            id="author"
+            name="author"
+            value="{{ form_data['author'] }}"
+            maxlength="120"
+            required
+        >
+    </div>
+
+    <button class="btn btn-primary" type="submit">Save Book</button>
+</form>
+{% endblock %}

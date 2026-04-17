@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}All Books | Library Management System{% endblock %}
+
+{% block content %}
+{% set next_url = request.full_path if request.query_string else request.path %}
+
+<section class="section-head section-head-inline">
+    <div>
+        <h1>All Books</h1>
+        <p>View and manage every book in the library.</p>
+    </div>
+    <form class="inline-search" method="get" action="{{ url_for('search_books') }}">
+        <label for="bookSearch" class="sr-only">Search by title</label>
+        <input type="text" id="bookSearch" name="query" placeholder="Search by title" maxlength="120">
+        <button class="btn btn-accent" type="submit">Search</button>
+    </form>
+</section>
+
+{% if books %}
+    <div class="table-wrap">
+        <table class="books-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Author</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for book in books %}
+                    <tr>
+                        <td>{{ book['id'] }}</td>
+                        <td>{{ book['title'] }}</td>
+                        <td>{{ book['author'] }}</td>
+                        <td>
+                            <span class="status-pill {{ book['status'] }}">{{ book['status']|title }}</span>
+                        </td>
+                        <td class="actions-cell">
+                            {% if book['status'] == 'available' %}
+                                <form
+                                    method="post"
+                                    action="{{ url_for('issue_book', book_id=book['id']) }}"
+                                    class="action-form js-confirm"
+                                    data-confirm-message="Issue this book?"
+                                >
+                                    <input type="hidden" name="next_url" value="{{ next_url }}">
+                                    <button class="btn btn-warning" type="submit">Issue</button>
+                                </form>
+                            {% else %}
+                                <form
+                                    method="post"
+                                    action="{{ url_for('return_book', book_id=book['id']) }}"
+                                    class="action-form js-confirm"
+                                    data-confirm-message="Return this book?"
+                                >
+                                    <input type="hidden" name="next_url" value="{{ next_url }}">
+                                    <button class="btn btn-success" type="submit">Return</button>
+                                </form>
+                            {% endif %}
+
+                            <form
+                                method="post"
+                                action="{{ url_for('delete_book', book_id=book['id']) }}"
+                                class="action-form js-confirm"
+                                data-confirm-message="Delete this book record?"
+                            >
+                                <input type="hidden" name="next_url" value="{{ next_url }}">
+                                <button class="btn btn-danger" type="submit">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="empty-state">
+        <h2>No books yet</h2>
+        <p>Start by adding your first book to the library.</p>
+        <a class="btn btn-primary" href="{{ url_for('add_book') }}">Add Book</a>
+    </div>
+{% endif %}
+{% endblock %}

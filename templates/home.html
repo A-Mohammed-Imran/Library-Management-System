@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Home | Library Management System{% endblock %}
+
+{% block content %}
+<section class="hero-panel">
+    <p class="eyebrow">Flask + SQLite Beginner Project</p>
+    <h1>Library Management System</h1>
+    <p class="hero-text">
+        Manage books, search quickly, and update issue/return status from one clean interface.
+    </p>
+
+    <div class="hero-actions">
+        <a class="btn btn-primary" href="{{ url_for('add_book') }}">Add New Book</a>
+        <a class="btn btn-outline" href="{{ url_for('view_books') }}">Browse Collection</a>
+    </div>
+
+    <form class="search-strip" method="get" action="{{ url_for('search_books') }}">
+        <label for="quickSearch" class="sr-only">Quick Search</label>
+        <input
+            type="text"
+            id="quickSearch"
+            name="query"
+            placeholder="Search by title..."
+            maxlength="120"
+        >
+        <button class="btn btn-accent" type="submit">Search</button>
+    </form>
+</section>
+
+<section class="stats-grid">
+    <article class="stat-card">
+        <p>Total Books</p>
+        <h2>{{ total_books }}</h2>
+    </article>
+    <article class="stat-card">
+        <p>Available</p>
+        <h2>{{ available_books }}</h2>
+    </article>
+    <article class="stat-card">
+        <p>Issued</p>
+        <h2>{{ issued_books }}</h2>
+    </article>
+</section>
+{% endblock %}
