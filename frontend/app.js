@@ -1,7 +1,4 @@
-const defaultApiUrl = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) || "http://127.0.0.1:5000/api";
-
 const state = {
-    apiBaseUrl: localStorage.getItem("libraryApiBaseUrl") || defaultApiUrl,
     allBooks: [],
     searchBooks: [],
 };
@@ -27,11 +24,6 @@ const elements = {
 };
 
 
-function normalizeApiUrl(url) {
-    return (url || "").trim().replace(/\/+$/, "");
-}
-
-
 function showMessage(message, type = "success") {
     elements.flashMessage.textContent = message;
     elements.flashMessage.className = `flash-message ${type}`;
@@ -45,38 +37,39 @@ function hideMessage() {
 }
 
 
-function setApiUrl(url, notify = true) {
-    const normalized = normalizeApiUrl(url);
-    if (!normalized) {
-        showMessage("Please provide a valid API URL.", "error");
-        return;
-    }
-
-    state.apiBaseUrl = normalized;
-    localStorage.setItem("libraryApiBaseUrl", normalized);
-    elements.apiUrlInput.value = normalized;
-
-    if (notify) {
-        showMessage("API URL saved.", "success");
-    }
+function handleApiError(error, context = "API request failed") {
+    const message = error && error.message ? error.message : "Something went wrong. Please try again.";
+    console.error(`${context}:`, error);
+    showMessage(message, "error");
+    window.alert(message);
 }
 
 
 async function apiRequest(path, options = {}) {
-    const url = `${state.apiBaseUrl}${path}`;
+    const requestUrl = `${API_URL}${path}`;
     const requestOptions = {
         method: options.method || "GET",
+        mode: "cors",
         headers: {
-            "Content-Type": "application/json",
+            "Accept": "application/json",
             ...(options.headers || {}),
         },
     };
 
     if (options.body !== undefined) {
+        requestOptions.headers["Content-Type"] = "application/json";
         requestOptions.body = JSON.stringify(options.body);
     }
 
-    const response = await fetch(url, requestOptions);
+    let response;
+
+    try {
+        response = await fetch(`${API_URL}${path}`, requestOptions);
+    } catch (networkError) {
+        console.error("Network error during API call:", networkError);
+        throw new Error("Cannot connect to backend server. Please check your internet or backend URL.");
+    }
+
     let data;
 
     try {
@@ -86,7 +79,13 @@ async function apiRequest(path, options = {}) {
     }
 
     if (!response.ok || !data.success) {
-        throw new Error(data.message || "Request failed.");
+        const message = data.message || `Request failed with status ${response.status}.`;
+        console.error("API responded with an error:", {
+            url: requestUrl,
+            status: response.status,
+            response: data,
+        });
+        throw new Error(message);
     }
 
     return data;
@@ -217,7 +216,7 @@ async function handleActionClick(event) {
             await loadSearchBooks(currentQuery);
         }
     } catch (error) {
-        showMessage(error.message, "error");
+        handleApiError(error, "Book action failed");
     }
 }
 
@@ -236,18 +235,17 @@ function setupMenu() {
 
 
 function setupApiUrlControls() {
-    elements.apiUrlInput.value = state.apiBaseUrl;
+    elements.apiUrlInput.value = API_URL;
 
     elements.saveApiUrlButton.addEventListener("click", async () => {
         hideMessage();
-        setApiUrl(elements.apiUrlInput.value);
 
         try {
             await apiRequest("/health");
             showMessage("Connected to backend API successfully.", "success");
             await refreshDashboard();
         } catch (error) {
-            showMessage(`Saved URL, but connection failed: ${error.message}`, "error");
+            handleApiError(error, "API health check failed");
         }
     });
 }
@@ -276,7 +274,7 @@ function setupAddBookForm() {
             showMessage("Book added successfully.", "success");
             await refreshDashboard();
         } catch (error) {
-            showMessage(error.message, "error");
+            handleApiError(error, "Add book failed");
         }
     });
 }
@@ -297,7 +295,7 @@ function setupSearchForm() {
             await loadSearchBooks(query);
             showMessage(`Search completed for "${query}".`, "success");
         } catch (error) {
-            showMessage(error.message, "error");
+            handleApiError(error, "Search failed");
         }
     });
 }
@@ -310,7 +308,7 @@ function setupRefreshButton() {
             await refreshDashboard();
             showMessage("Book list refreshed.", "success");
         } catch (error) {
-            showMessage(error.message, "error");
+            handleApiError(error, "Refresh failed");
         }
     });
 }
@@ -337,10 +335,7 @@ async function initializeApp() {
         await refreshDashboard();
         showMessage("Connected to backend API.", "success");
     } catch (error) {
-        showMessage(
-            `Could not connect to backend: ${error.message}. Update the API URL and try again.`,
-            "error"
-        );
+        handleApiError(error, "Initial API connection failed");
     }
 }
 
