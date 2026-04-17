@@ -9,7 +9,7 @@
 <body>
     <header class="site-header">
         <div class="container nav-wrap">
-            <a class="brand" href="#home">ShelfSpark</a>
+            <a class="brand" href="#home">Library Management</a>
             <button id="menuButton" class="menu-button" type="button" aria-label="Toggle navigation">Menu</button>
             <nav id="navMenu" class="nav-menu">
                 <a href="#home">Home</a>
@@ -23,42 +23,15 @@
     <main class="container page-main">
         <section id="flashMessage" class="flash-message hidden"></section>
 
-        <section id="home" class="panel hero">
-            <p class="kicker">Netlify Frontend + Flask API</p>
-            <h1>Library Management System</h1>
-            <p class="hero-copy">
-                Manage books from a clean interface while your data stays in a Flask + SQLite backend.
-            </p>
-
-            <div class="stats-grid">
-                <article class="stat-card">
-                    <p>Total Books</p>
-                    <h2 id="totalBooks">0</h2>
-                </article>
-                <article class="stat-card">
-                    <p>Available</p>
-                    <h2 id="availableBooks">0</h2>
-                </article>
-                <article class="stat-card">
-                    <p>Issued</p>
-                    <h2 id="issuedBooks">0</h2>
-                </article>
-            </div>
-
-            <div class="api-config">
-                <label for="apiUrl">Backend API URL</label>
-                <div class="api-config-row">
-                    <input id="apiUrl" type="text" placeholder="https://your-backend.onrender.com/api">
-                    <button id="saveApiUrl" class="btn btn-primary" type="button">Save URL</button>
-                </div>
-                <small>Example: https://your-service.onrender.com/api</small>
-            </div>
+        <section id="home" class="panel">
+            <h2>Home</h2>
+            <p>Use the sections below to add, view, search, issue, and return books.</p>
         </section>
 
         <section id="add-book" class="panel">
             <div class="section-head">
                 <h2>Add Book</h2>
-                <p>Add a new book to your library collection.</p>
+                <p>Add a book using title and author.</p>
             </div>
 
             <form id="addBookForm" class="form-grid">
@@ -78,7 +51,7 @@
             <div class="section-head section-head-inline">
                 <div>
                     <h2>All Books</h2>
-                    <p>Issue, return, or delete books from this table.</p>
+                    <p>Issue or return books from this table.</p>
                 </div>
                 <button id="refreshBooks" class="btn btn-outline" type="button">Refresh</button>
             </div>

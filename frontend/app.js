@@ -8,8 +8,6 @@ const elements = {
     flashMessage: document.getElementById("flashMessage"),
     menuButton: document.getElementById("menuButton"),
     navMenu: document.getElementById("navMenu"),
-    apiUrlInput: document.getElementById("apiUrl"),
-    saveApiUrlButton: document.getElementById("saveApiUrl"),
     addBookForm: document.getElementById("addBookForm"),
     refreshBooksButton: document.getElementById("refreshBooks"),
     allBooksBody: document.getElementById("allBooksBody"),
@@ -18,9 +16,6 @@ const elements = {
     searchQueryInput: document.getElementById("searchQuery"),
     searchBooksBody: document.getElementById("searchBooksBody"),
     searchBooksEmpty: document.getElementById("searchBooksEmpty"),
-    totalBooks: document.getElementById("totalBooks"),
-    availableBooks: document.getElementById("availableBooks"),
-    issuedBooks: document.getElementById("issuedBooks"),
 };
 
 
@@ -101,7 +96,6 @@ function createActions(book) {
     return `
         <div class="actions-group">
             ${statusAction}
-            <button class="btn btn-danger" data-action="delete" data-id="${book.id}" type="button">Delete</button>
         </div>
     `;
 }
@@ -132,16 +126,6 @@ function renderBooksTable(targetBody, emptyNode, books, emptyMessage) {
 }
 
 
-async function loadStats() {
-    const response = await apiRequest("/stats");
-    const stats = response.data;
-
-    elements.totalBooks.textContent = String(stats.total_books);
-    elements.availableBooks.textContent = String(stats.available_books);
-    elements.issuedBooks.textContent = String(stats.issued_books);
-}
-
-
 async function loadAllBooks() {
     const response = await apiRequest("/books");
     state.allBooks = response.data;
@@ -165,7 +149,7 @@ async function loadSearchBooks(query) {
 
 
 async function refreshDashboard() {
-    await Promise.all([loadStats(), loadAllBooks()]);
+    await loadAllBooks();
 }
 
 
@@ -182,14 +166,6 @@ async function runBookAction(action, bookId) {
         return;
     }
 
-    if (action === "delete") {
-        const confirmed = window.confirm("Delete this book permanently?");
-        if (!confirmed) {
-            return;
-        }
-        await apiRequest(`/books/${bookId}`, { method: "DELETE" });
-        showMessage("Book deleted successfully.", "success");
-    }
 }
 
 
@@ -230,23 +206,6 @@ function setupMenu() {
         link.addEventListener("click", () => {
             elements.navMenu.classList.remove("open");
         });
-    });
-}
-
-
-function setupApiUrlControls() {
-    elements.apiUrlInput.value = API_URL;
-
-    elements.saveApiUrlButton.addEventListener("click", async () => {
-        hideMessage();
-
-        try {
-            await apiRequest("/health");
-            showMessage("Connected to backend API successfully.", "success");
-            await refreshDashboard();
-        } catch (error) {
-            handleApiError(error, "API health check failed");
-        }
     });
 }
 
@@ -322,7 +281,6 @@ function setupActionHandlers() {
 
 async function initializeApp() {
     setupMenu();
-    setupApiUrlControls();
     setupAddBookForm();
     setupSearchForm();
     setupRefreshButton();
