@@ -10,6 +10,10 @@
     <header class="site-header">
         <div class="container nav-wrap">
             <a class="brand" href="#home">Library Management</a>
+            <div id="serverStatus" class="status-badge connecting">
+                <span class="status-dot"></span>
+                <span class="status-text">Connecting...</span>
+            </div>
             <button id="menuButton" class="menu-button" type="button" aria-label="Toggle navigation">Menu</button>
             <nav id="navMenu" class="nav-menu">
                 <a href="#home">Home</a>
@@ -22,8 +26,6 @@
 
     <main class="container page-main">
         <section id="flashMessage" class="flash-message hidden"></section>
-
-        <!-- Backend loader overlay will be created by bootstrap.js -->
 
         <section id="home" class="panel">
             <h2>Home</h2>
@@ -69,10 +71,15 @@
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="allBooksBody"></tbody>
+                    <tbody id="allBooksBody">
+                        <!-- Skeletons will be injected by JS or rendered here -->
+                        <tr class="skeleton-row"><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td></tr>
+                        <tr class="skeleton-row"><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td></tr>
+                        <tr class="skeleton-row"><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td></tr>
+                    </tbody>
                 </table>
             </div>
-            <p id="allBooksEmpty" class="empty-text">No books found.</p>
+            <p id="allBooksEmpty" class="empty-text hidden">No books found.</p>
         </section>
 
         <section id="search-books" class="panel">
@@ -97,15 +104,18 @@
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="searchBooksBody"></tbody>
+                    <tbody id="searchBooksBody">
+                        <tr class="skeleton-row"><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td></tr>
+                        <tr class="skeleton-row"><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td></tr>
+                        <tr class="skeleton-row"><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td></tr>
+                    </tbody>
                 </table>
             </div>
-            <p id="searchBooksEmpty" class="empty-text">Search results will appear here.</p>
+            <p id="searchBooksEmpty" class="empty-text hidden">Search results will appear here.</p>
         </section>
     </main>
 
     <script src="config.js"></script>
-    <script src="bootstrap.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

@@ -1,8 +1,8 @@
 const state = {
     allBooks: [],
     searchBooks: [],
+    isBackendAwake: false,
 };
-
 
 const elements = {
     flashMessage: document.getElementById("flashMessage"),
@@ -16,21 +16,40 @@ const elements = {
     searchQueryInput: document.getElementById("searchQuery"),
     searchBooksBody: document.getElementById("searchBooksBody"),
     searchBooksEmpty: document.getElementById("searchBooksEmpty"),
+    serverStatusBadge: document.getElementById("serverStatus"),
+    serverStatusText: document.querySelector("#serverStatus .status-text"),
 };
 
-
 function showMessage(message, type = "success") {
+    // We treat warning similarly to error visually if no specific warning style is present,
+    // or just let it use its own class if it exists in css.
+    if (type === "warning") type = "error"; 
     elements.flashMessage.textContent = message;
     elements.flashMessage.className = `flash-message ${type}`;
     elements.flashMessage.classList.remove("hidden");
 }
-
 
 function hideMessage() {
     elements.flashMessage.textContent = "";
     elements.flashMessage.className = "flash-message hidden";
 }
 
+function updateServerStatus(status) {
+    const badge = elements.serverStatusBadge;
+    const text = elements.serverStatusText;
+    badge.className = `status-badge ${status}`;
+    
+    if (status === "connecting") {
+        text.textContent = "Connecting...";
+        badge.title = "Waking up server in the background";
+    } else if (status === "online") {
+        text.textContent = "Server Online";
+        badge.title = "Connected to backend API";
+    } else if (status === "offline") {
+        text.textContent = "Server Offline";
+        badge.title = "Could not reach backend";
+    }
+}
 
 function handleApiError(error, context = "API request failed") {
     const message = error && error.message ? error.message : "Something went wrong. Please try again.";
@@ -38,7 +57,6 @@ function handleApiError(error, context = "API request failed") {
     showMessage(message, "error");
     window.alert(message);
 }
-
 
 async function apiRequest(path, options = {}) {
     const requestUrl = `${API_URL}${path}`;
@@ -57,16 +75,14 @@ async function apiRequest(path, options = {}) {
     }
 
     let response;
-
     try {
-        response = await fetch(`${API_URL}${path}`, requestOptions);
+        response = await fetch(requestUrl, requestOptions);
     } catch (networkError) {
         console.error("Network error during API call:", networkError);
         throw new Error("Cannot connect to backend server. Please check your internet or backend URL.");
     }
 
     let data;
-
     try {
         data = await response.json();
     } catch (_error) {
@@ -86,7 +102,6 @@ async function apiRequest(path, options = {}) {
     return data;
 }
 
-
 function createActions(book) {
     const statusAction =
         book.status === "available"
@@ -99,7 +114,6 @@ function createActions(book) {
         </div>
     `;
 }
-
 
 function renderBooksTable(targetBody, emptyNode, books, emptyMessage) {
     targetBody.innerHTML = "";
@@ -125,7 +139,6 @@ function renderBooksTable(targetBody, emptyNode, books, emptyMessage) {
     });
 }
 
-
 async function loadAllBooks() {
     const response = await apiRequest("/books");
     state.allBooks = response.data;
@@ -138,7 +151,6 @@ async function loadAllBooks() {
     );
 }
 
-
 async function loadSearchBooks(query) {
     const response = await apiRequest(`/books?query=${encodeURIComponent(query)}`);
     state.searchBooks = response.data;
@@ -147,11 +159,9 @@ async function loadSearchBooks(query) {
     renderBooksTable(elements.searchBooksBody, elements.searchBooksEmpty, state.searchBooks, emptyMessage);
 }
 
-
 async function refreshDashboard() {
     await loadAllBooks();
 }
-
 
 async function runBookAction(action, bookId) {
     if (action === "issue") {
@@ -165,21 +175,25 @@ async function runBookAction(action, bookId) {
         showMessage("Book returned successfully.", "success");
         return;
     }
-
 }
 
+function checkBackendReady() {
+    if (!state.isBackendAwake) {
+        showMessage("Server still waking up... Please wait a moment.", "warning");
+        return false;
+    }
+    return true;
+}
 
 async function handleActionClick(event) {
     const button = event.target.closest("button[data-action]");
-    if (!button) {
-        return;
-    }
+    if (!button) return;
+
+    if (!checkBackendReady()) return;
 
     const action = button.dataset.action;
     const bookId = Number(button.dataset.id);
-    if (!action || Number.isNaN(bookId)) {
-        return;
-    }
+    if (!action || Number.isNaN(bookId)) return;
 
     hideMessage();
 
@@ -196,7 +210,6 @@ async function handleActionClick(event) {
     }
 }
 
-
 function setupMenu() {
     elements.menuButton.addEventListener("click", () => {
         elements.navMenu.classList.toggle("open");
@@ -209,10 +222,10 @@ function setupMenu() {
     });
 }
 
-
 function setupAddBookForm() {
     elements.addBookForm.addEventListener("submit", async (event) => {
         event.preventDefault();
+        if (!checkBackendReady()) return;
         hideMessage();
 
         const title = elements.addBookForm.title.value.trim();
@@ -238,10 +251,10 @@ function setupAddBookForm() {
     });
 }
 
-
 function setupSearchForm() {
     elements.searchForm.addEventListener("submit", async (event) => {
         event.preventDefault();
+        if (!checkBackendReady()) return;
         hideMessage();
 
         const query = elements.searchQueryInput.value.trim();
@@ -259,9 +272,9 @@ function setupSearchForm() {
     });
 }
 
-
 function setupRefreshButton() {
     elements.refreshBooksButton.addEventListener("click", async () => {
+        if (!checkBackendReady()) return;
         hideMessage();
         try {
             await refreshDashboard();
@@ -272,14 +285,73 @@ function setupRefreshButton() {
     });
 }
 
-
 function setupActionHandlers() {
     elements.allBooksBody.addEventListener("click", handleActionClick);
     elements.searchBooksBody.addEventListener("click", handleActionClick);
 }
 
+function startBackendWakeup() {
+    // Usually API_URL ends without a slash, but let's be safe
+    const healthUrl = \`\${API_URL.replace(/\\/+$/, '')}/health\`;
+    const MAX_TIMEOUT_MS = 60000;
+    const MAX_INTERVAL = 5000;
+    const startTime = Date.now();
+    let intervalMs = 2000;
+    
+    updateServerStatus("connecting");
 
-async function initializeApp() {
+    const attempt = async () => {
+        if (state.isBackendAwake) return;
+
+        const elapsed = Date.now() - startTime;
+        if (elapsed > MAX_TIMEOUT_MS) {
+            console.error("Backend wake-up timeout");
+            updateServerStatus("offline");
+            showMessage("Server is unreachable. Please try reloading.", "error");
+            // Clear skeletons
+            elements.allBooksBody.innerHTML = "";
+            elements.searchBooksBody.innerHTML = "";
+            elements.allBooksEmpty.classList.remove("hidden");
+            elements.allBooksEmpty.textContent = "Server is offline.";
+            return;
+        }
+
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+            
+            const res = await fetch(healthUrl, { signal: controller.signal, cache: 'no-store' });
+            clearTimeout(timeoutId);
+            
+            if (res.ok) {
+                const data = await res.json().catch(() => null);
+                if (data && data.success) {
+                    console.log("Backend is awake!");
+                    state.isBackendAwake = true;
+                    updateServerStatus("online");
+                    
+                    // Now that backend is awake, load initial data
+                    try {
+                        await refreshDashboard();
+                    } catch (err) {
+                        handleApiError(err, "Initial data load failed");
+                    }
+                    return;
+                }
+            }
+        } catch (err) {
+            // Ignore fetch errors during polling
+        }
+
+        // Retry with backoff
+        intervalMs = Math.min(intervalMs * 1.25, MAX_INTERVAL);
+        setTimeout(attempt, intervalMs);
+    };
+
+    attempt();
+}
+
+function initializeApp() {
     setupMenu();
     setupAddBookForm();
     setupSearchForm();
@@ -287,17 +359,10 @@ async function initializeApp() {
     setupActionHandlers();
 
     hideMessage();
-
-    // Note: backend health is already confirmed by bootstrap.js before this
-    // function is called — no need to re-ping /health here.
-    try {
-        await refreshDashboard();
-        showMessage("Connected to backend API.", "success");
-    } catch (error) {
-        handleApiError(error, "Initial API connection failed");
-    }
+    
+    // Start the non-blocking background wake-up
+    startBackendWakeup();
 }
 
-// Expose initialize function for the bootstrapper. Do NOT auto-run here.
-// The bootstrap script will ensure the backend is awake before calling this.
-window.initializeApp = initializeApp;
+// Auto-run since we no longer use a separate bootstrapper script
+document.addEventListener('DOMContentLoaded', initializeApp);
