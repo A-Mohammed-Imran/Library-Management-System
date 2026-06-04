@@ -1,13 +1,13 @@
 import os
 from flask import Flask, jsonify
 from flask_cors import CORS
-from backend.db import init_db
+from db import init_db
 
 # Import blueprints
-from backend.routes.auth import auth_bp
-from backend.routes.books import books_bp
-from backend.routes.history import history_bp
-from backend.routes.dashboard import dashboard_bp
+from routes.auth import auth_bp
+from routes.books import books_bp
+from routes.history import history_bp
+from routes.dashboard import dashboard_bp
 
 app = Flask(__name__)
 

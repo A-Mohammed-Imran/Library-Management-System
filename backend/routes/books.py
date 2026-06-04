@@ -1,7 +1,7 @@
 import html
 from flask import Blueprint, request, jsonify
-from backend.db import get_db_connection
-from backend.utils import require_auth
+from db import get_db_connection
+from utils import require_auth
 
 books_bp = Blueprint('books', __name__)
 

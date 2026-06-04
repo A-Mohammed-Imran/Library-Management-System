@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify
-from backend.db import get_db_connection
+from db import get_db_connection
 
 history_bp = Blueprint('history', __name__)
 
