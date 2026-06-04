@@ -1,32 +1,73 @@
 const state = {
     allBooks: [],
     searchBooks: [],
+    history: [],
     isBackendAwake: false,
+    authToken: localStorage.getItem("lib_token") || "",
 };
 
 const elements = {
     flashMessage: document.getElementById("flashMessage"),
     menuButton: document.getElementById("menuButton"),
     navMenu: document.getElementById("navMenu"),
+    
+    loginForm: document.getElementById("loginForm"),
+    navLogoutBtn: document.getElementById("navLogoutBtn"),
+    
     addBookForm: document.getElementById("addBookForm"),
     refreshBooksButton: document.getElementById("refreshBooks"),
     allBooksBody: document.getElementById("allBooksBody"),
     allBooksEmpty: document.getElementById("allBooksEmpty"),
+    
     searchForm: document.getElementById("searchForm"),
     searchQueryInput: document.getElementById("searchQuery"),
+    statusFilter: document.getElementById("statusFilter"),
     searchBooksBody: document.getElementById("searchBooksBody"),
     searchBooksEmpty: document.getElementById("searchBooksEmpty"),
+    
+    historyBody: document.getElementById("historyBody"),
+    historyEmpty: document.getElementById("historyEmpty"),
+    
     serverStatusBadge: document.getElementById("serverStatus"),
     serverStatusText: document.querySelector("#serverStatus .status-text"),
+    
+    issueModal: document.getElementById("issueModal"),
+    issueForm: document.getElementById("issueForm"),
+    issueModalBookTitle: document.getElementById("issueModalBookTitle"),
+    closeIssueModalBtn: document.getElementById("closeIssueModal"),
+    borrowerNameInput: document.getElementById("borrowerName")
 };
 
+let toastTimeout;
+let currentIssueBookId = null;
+
+function isLoggedIn() {
+    return !!state.authToken;
+}
+
+function updateAuthUI() {
+    const authOnly = document.querySelectorAll(".auth-only");
+    const publicOnly = document.querySelectorAll(".public-only");
+    
+    if (isLoggedIn()) {
+        authOnly.forEach(el => el.classList.remove("hidden"));
+        publicOnly.forEach(el => el.classList.add("hidden"));
+    } else {
+        authOnly.forEach(el => el.classList.add("hidden"));
+        publicOnly.forEach(el => el.classList.remove("hidden"));
+    }
+}
+
 function showMessage(message, type = "success") {
-    // We treat warning similarly to error visually if no specific warning style is present,
-    // or just let it use its own class if it exists in css.
     if (type === "warning") type = "error"; 
     elements.flashMessage.textContent = message;
     elements.flashMessage.className = `flash-message ${type}`;
     elements.flashMessage.classList.remove("hidden");
+    
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => {
+        hideMessage();
+    }, 4000);
 }
 
 function hideMessage() {
@@ -55,7 +96,12 @@ function handleApiError(error, context = "API request failed") {
     const message = error && error.message ? error.message : "Something went wrong. Please try again.";
     console.error(`${context}:`, error);
     showMessage(message, "error");
-    window.alert(message);
+    
+    if (error.status === 401) {
+        // Token might be expired or invalid
+        handleLogout(false);
+        showMessage("Session expired. Please log in again.", "error");
+    }
 }
 
 async function apiRequest(path, options = {}) {
@@ -68,6 +114,10 @@ async function apiRequest(path, options = {}) {
             ...(options.headers || {}),
         },
     };
+
+    if (isLoggedIn()) {
+        requestOptions.headers["Authorization"] = `Bearer ${state.authToken}`;
+    }
 
     if (options.body !== undefined) {
         requestOptions.headers["Content-Type"] = "application/json";
@@ -90,27 +140,28 @@ async function apiRequest(path, options = {}) {
     }
 
     if (!response.ok || !data.success) {
-        const message = data.message || `Request failed with status ${response.status}.`;
-        console.error("API responded with an error:", {
-            url: requestUrl,
-            status: response.status,
-            response: data,
-        });
-        throw new Error(message);
+        const error = new Error(data.message || `Request failed with status ${response.status}.`);
+        error.status = response.status;
+        throw error;
     }
 
     return data;
 }
 
 function createActions(book) {
+    if (!isLoggedIn()) return `<span class="muted-text" style="font-size:12px;">Login to manage</span>`;
+    
     const statusAction =
         book.status === "available"
-            ? `<button class="btn btn-warning" data-action="issue" data-id="${book.id}" type="button">Issue</button>`
+            ? `<button class="btn btn-warning" data-action="issue" data-id="${book.id}" data-title="${book.title.replace(/"/g, '&quot;')}" type="button">Issue</button>`
             : `<button class="btn btn-success" data-action="return" data-id="${book.id}" type="button">Return</button>`;
+
+    const deleteAction = `<button class="btn btn-danger" data-action="delete" data-id="${book.id}" type="button">Delete</button>`;
 
     return `
         <div class="actions-group">
             ${statusAction}
+            ${deleteAction}
         </div>
     `;
 }
@@ -139,42 +190,75 @@ function renderBooksTable(targetBody, emptyNode, books, emptyMessage) {
     });
 }
 
+function renderHistoryTable() {
+    elements.historyBody.innerHTML = "";
+    if (!state.history.length) {
+        elements.historyEmpty.classList.remove("hidden");
+        return;
+    }
+    elements.historyEmpty.classList.add("hidden");
+    
+    state.history.forEach(record => {
+        const row = document.createElement("tr");
+        const bDate = new Date(record.borrow_date + "Z").toLocaleString();
+        const rDate = record.return_date ? new Date(record.return_date + "Z").toLocaleString() : "-";
+        
+        row.innerHTML = `
+            <td><strong>${record.book_title}</strong><br><small class="muted-text">${record.book_author}</small></td>
+            <td>${record.borrower_name}</td>
+            <td>${bDate}</td>
+            <td>${rDate}</td>
+            <td><span class="status-pill ${record.status === 'active' ? 'issued' : 'available'}">${record.status}</span></td>
+        `;
+        elements.historyBody.appendChild(row);
+    });
+}
+
 async function loadAllBooks() {
     const response = await apiRequest("/books");
     state.allBooks = response.data;
-
-    renderBooksTable(
-        elements.allBooksBody,
-        elements.allBooksEmpty,
-        state.allBooks,
-        "No books found. Add your first book."
-    );
+    renderBooksTable(elements.allBooksBody, elements.allBooksEmpty, state.allBooks, "No books found.");
 }
 
-async function loadSearchBooks(query) {
-    const response = await apiRequest(`/books?query=${encodeURIComponent(query)}`);
+async function loadSearchBooks(query, status) {
+    let url = `/books?query=${encodeURIComponent(query)}`;
+    if (status) url += `&status=${status}`;
+    
+    const response = await apiRequest(url);
     state.searchBooks = response.data;
+    renderBooksTable(elements.searchBooksBody, elements.searchBooksEmpty, state.searchBooks, "No books found matching criteria.");
+}
 
-    const emptyMessage = `No books found for "${query}".`;
-    renderBooksTable(elements.searchBooksBody, elements.searchBooksEmpty, state.searchBooks, emptyMessage);
+async function loadHistory() {
+    if (!isLoggedIn()) return;
+    try {
+        const response = await apiRequest("/history");
+        state.history = response.data;
+        renderHistoryTable();
+    } catch (e) {
+        console.error("Failed to load history", e);
+    }
+}
+
+async function loadDashboardStats() {
+    try {
+        const response = await apiRequest("/stats");
+        if (response.success && response.data) {
+            document.getElementById("statTotal").textContent = response.data.total_books;
+            document.getElementById("statAvailable").textContent = response.data.available_books;
+            document.getElementById("statIssued").textContent = response.data.issued_books;
+        }
+    } catch (e) {
+        console.error("Failed to load stats", e);
+    }
 }
 
 async function refreshDashboard() {
-    await loadAllBooks();
-}
-
-async function runBookAction(action, bookId) {
-    if (action === "issue") {
-        await apiRequest(`/books/${bookId}/issue`, { method: "PATCH" });
-        showMessage("Book issued successfully.", "success");
-        return;
+    const promises = [loadAllBooks(), loadDashboardStats()];
+    if (isLoggedIn()) {
+        promises.push(loadHistory());
     }
-
-    if (action === "return") {
-        await apiRequest(`/books/${bookId}/return`, { method: "PATCH" });
-        showMessage("Book returned successfully.", "success");
-        return;
-    }
+    await Promise.all(promises);
 }
 
 function checkBackendReady() {
@@ -185,10 +269,21 @@ function checkBackendReady() {
     return true;
 }
 
+function openIssueModal(bookId, bookTitle) {
+    currentIssueBookId = bookId;
+    elements.issueModalBookTitle.textContent = bookTitle;
+    elements.borrowerNameInput.value = "";
+    elements.issueModal.classList.remove("hidden");
+}
+
+function closeIssueModal() {
+    currentIssueBookId = null;
+    elements.issueModal.classList.add("hidden");
+}
+
 async function handleActionClick(event) {
     const button = event.target.closest("button[data-action]");
     if (!button) return;
-
     if (!checkBackendReady()) return;
 
     const action = button.dataset.action;
@@ -198,16 +293,92 @@ async function handleActionClick(event) {
     hideMessage();
 
     try {
-        await runBookAction(action, bookId);
-        await refreshDashboard();
-
-        const currentQuery = elements.searchQueryInput.value.trim();
-        if (currentQuery) {
-            await loadSearchBooks(currentQuery);
+        if (action === "issue") {
+            const title = button.dataset.title;
+            openIssueModal(bookId, title);
+            return;
         }
+        
+        if (action === "return") {
+            await apiRequest(`/books/${bookId}/return`, { method: "PATCH" });
+            showMessage("Book returned successfully.", "success");
+        }
+        
+        if (action === "delete") {
+            if (!confirm("Are you sure you want to delete this book?")) return;
+            await apiRequest(`/books/${bookId}`, { method: "DELETE" });
+            showMessage("Book deleted successfully.", "success");
+        }
+
+        await refreshDashboard();
+        
+        // Re-run search if there's an active query
+        const currentQuery = elements.searchQueryInput.value.trim();
+        const currentStatus = elements.statusFilter.value;
+        if (currentQuery || currentStatus) {
+            await loadSearchBooks(currentQuery, currentStatus);
+        }
+        
     } catch (error) {
         handleApiError(error, "Book action failed");
     }
+}
+
+function setupAuthForms() {
+    if (elements.loginForm) {
+        elements.loginForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            if (!checkBackendReady()) return;
+            hideMessage();
+            
+            const username = elements.loginForm.username.value.trim();
+            const password = elements.loginForm.password.value;
+            
+            try {
+                const res = await apiRequest("/auth/login", {
+                    method: "POST",
+                    body: { username, password }
+                });
+                state.authToken = res.data.token;
+                localStorage.setItem("lib_token", state.authToken);
+                elements.loginForm.reset();
+                updateAuthUI();
+                await refreshDashboard();
+                window.location.hash = "#dashboard";
+                showMessage("Logged in successfully.", "success");
+            } catch (err) {
+                handleApiError(err, "Login failed");
+            }
+        });
+    }
+
+    if (elements.navLogoutBtn) {
+        elements.navLogoutBtn.addEventListener("click", async (e) => {
+            e.preventDefault();
+            handleLogout(true);
+        });
+    }
+}
+
+async function handleLogout(notifyServer = false) {
+    if (notifyServer && isLoggedIn() && state.isBackendAwake) {
+        try {
+            await apiRequest("/auth/logout", { method: "POST" });
+        } catch (e) {
+            console.error("Logout error", e);
+        }
+    }
+    
+    state.authToken = "";
+    localStorage.removeItem("lib_token");
+    updateAuthUI();
+    // Re-render tables to remove action buttons
+    renderBooksTable(elements.allBooksBody, elements.allBooksEmpty, state.allBooks, "No books found.");
+    if (state.searchBooks.length > 0) {
+        renderBooksTable(elements.searchBooksBody, elements.searchBooksEmpty, state.searchBooks, "No books found.");
+    }
+    showMessage("Logged out successfully.");
+    window.location.hash = "#home";
 }
 
 function setupMenu() {
@@ -215,7 +386,24 @@ function setupMenu() {
         elements.navMenu.classList.toggle("open");
     });
 
-    elements.navMenu.querySelectorAll("a").forEach((link) => {
+    const links = elements.navMenu.querySelectorAll("a");
+    
+    // Update active class on hash change
+    const updateActiveLink = () => {
+        const hash = window.location.hash || "#home";
+        links.forEach(link => {
+            if (link.getAttribute("href") === hash) {
+                link.classList.add("active");
+            } else {
+                link.classList.remove("active");
+            }
+        });
+    };
+
+    window.addEventListener("hashchange", updateActiveLink);
+    updateActiveLink(); // initial call
+
+    links.forEach((link) => {
         link.addEventListener("click", () => {
             elements.navMenu.classList.remove("open");
         });
@@ -258,14 +446,10 @@ function setupSearchForm() {
         hideMessage();
 
         const query = elements.searchQueryInput.value.trim();
-        if (!query) {
-            showMessage("Please enter a title to search.", "error");
-            return;
-        }
+        const status = elements.statusFilter.value;
 
         try {
-            await loadSearchBooks(query);
-            showMessage(`Search completed for "${query}".`, "success");
+            await loadSearchBooks(query, status);
         } catch (error) {
             handleApiError(error, "Search failed");
         }
@@ -278,7 +462,7 @@ function setupRefreshButton() {
         hideMessage();
         try {
             await refreshDashboard();
-            showMessage("Book list refreshed.", "success");
+            showMessage("Dashboard refreshed.", "success");
         } catch (error) {
             handleApiError(error, "Refresh failed");
         }
@@ -288,11 +472,38 @@ function setupRefreshButton() {
 function setupActionHandlers() {
     elements.allBooksBody.addEventListener("click", handleActionClick);
     elements.searchBooksBody.addEventListener("click", handleActionClick);
+    
+    elements.closeIssueModalBtn.addEventListener("click", closeIssueModal);
+    
+    elements.issueForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (!currentIssueBookId || !checkBackendReady()) return;
+        
+        const borrowerName = elements.borrowerNameInput.value.trim();
+        if (!borrowerName) return;
+        
+        try {
+            await apiRequest(`/books/${currentIssueBookId}/issue`, {
+                method: "PATCH",
+                body: { borrower_name: borrowerName }
+            });
+            showMessage("Book issued successfully.", "success");
+            closeIssueModal();
+            await refreshDashboard();
+            
+            const currentQuery = elements.searchQueryInput.value.trim();
+            const currentStatus = elements.statusFilter.value;
+            if (currentQuery || currentStatus) {
+                await loadSearchBooks(currentQuery, currentStatus);
+            }
+        } catch (err) {
+            handleApiError(err, "Issue book failed");
+        }
+    });
 }
 
 function startBackendWakeup() {
-    // Usually API_URL ends without a slash, but let's be safe
-    const healthUrl = \`\${API_URL.replace(/\\/+$/, '')}/health\`;
+    const healthUrl = `${API_URL.replace(/\/+$/, '')}/health`;
     const MAX_TIMEOUT_MS = 60000;
     const MAX_INTERVAL = 5000;
     const startTime = Date.now();
@@ -308,9 +519,11 @@ function startBackendWakeup() {
             console.error("Backend wake-up timeout");
             updateServerStatus("offline");
             showMessage("Server is unreachable. Please try reloading.", "error");
+            
             // Clear skeletons
             elements.allBooksBody.innerHTML = "";
             elements.searchBooksBody.innerHTML = "";
+            elements.historyBody.innerHTML = "";
             elements.allBooksEmpty.classList.remove("hidden");
             elements.allBooksEmpty.textContent = "Server is offline.";
             return;
@@ -330,7 +543,6 @@ function startBackendWakeup() {
                     state.isBackendAwake = true;
                     updateServerStatus("online");
                     
-                    // Now that backend is awake, load initial data
                     try {
                         await refreshDashboard();
                     } catch (err) {
@@ -352,7 +564,9 @@ function startBackendWakeup() {
 }
 
 function initializeApp() {
+    updateAuthUI();
     setupMenu();
+    setupAuthForms();
     setupAddBookForm();
     setupSearchForm();
     setupRefreshButton();
@@ -364,5 +578,4 @@ function initializeApp() {
     startBackendWakeup();
 }
 
-// Auto-run since we no longer use a separate bootstrapper script
 document.addEventListener('DOMContentLoaded', initializeApp);

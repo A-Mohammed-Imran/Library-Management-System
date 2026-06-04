@@ -1,153 +1,106 @@
-# Library Management System (Netlify Frontend + Flask API)
+# Library Management System
 
-This project is split into two deployable parts:
+![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)
+![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
+![Flask](https://img.shields.io/badge/Flask-000000?style=for-the-badge&logo=flask&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-07405E?style=for-the-badge&logo=sqlite&logoColor=white)
+![Netlify](https://img.shields.io/badge/Netlify-00C7B7?style=for-the-badge&logo=netlify&logoColor=white)
+![Render](https://img.shields.io/badge/Render-46E3B7?style=for-the-badge&logo=render&logoColor=white)
 
-- Frontend: Static HTML, CSS, and JavaScript (`frontend/`) for Netlify
-- Backend: Flask REST API with SQLite (`backend/`) for Render or Railway
+A polished, full-stack Library Management System designed as a showcase of modern web development practices. It features a responsive UI, token-based authentication, book inventory management, and borrow history tracking. The frontend is cleanly decoupled from the lightweight Python/Flask backend.
 
-## Features
+## 🚀 Features
 
-- Home dashboard with statistics
-- Add book
-- View all books in table format
-- Search by title
-- Issue book
-- Return book
-- Delete book
-- Success and error messages
-- Mobile-friendly responsive UI
+- **Responsive Dashboard:** At-a-glance metrics for Total, Available, and Issued books.
+- **Secure Authentication:** Token-based admin login with bcrypt password hashing.
+- **Book Management:** Add, delete, and search for books by title, author, or availability status.
+- **Borrow History:** Issue books to specific borrowers, track return dates, and view a comprehensive history log.
+- **Optimized UX:** Skeleton loading states, smooth toast notifications, and non-blocking background API connections.
 
-## Project Structure
+## 📸 Screenshots
+*(Add your screenshots here before publishing)*
 
+| Dashboard Overview | Login Modal |
+| ------------------ | ----------- |
+| `![Dashboard](screenshots/dashboard.png)` | `![Login](screenshots/login.png)` |
+
+| Book Management | Borrow History |
+| --------------- | -------------- |
+| `![Management](screenshots/management.png)` | `![History](screenshots/history.png)` |
+
+## 🏗️ Architecture
+
+The project follows a decoupled client-server architecture:
+- **Frontend (`/frontend`)**: Pure HTML, CSS, and Vanilla JavaScript. Deployed globally via Netlify.
+- **Backend (`/backend`)**: Flask API utilizing Blueprints for modular routing (`auth`, `books`, `history`, `dashboard`). Hosted on Render.
+- **Database**: SQLite3, keeping the deployment lightweight and easily portable.
+
+## ⚙️ Installation & Local Setup
+
+### 1. Clone the repository
+```bash
+git clone https://github.com/yourusername/library-management-system.git
+cd library-management-system
 ```
-Library Management System/
-|-- backend/
-|   |-- app.py
-|   |-- requirements.txt
-|   |-- library.db (auto-created)
-|-- frontend/
-|   |-- index.html
-|   |-- styles.css
-|   |-- app.js
-|   |-- config.js
-|-- netlify.toml
-|-- render.yaml
-|-- README.md
-|-- app.py (old template-based version)
-|-- templates/ (old template-based version)
-|-- static/ (old template-based version)
-|-- library_management_system.py (old console version)
-```
 
-## API Endpoints
-
-- `GET /api/health`
-- `GET /api/stats`
-- `GET /api/books`
-- `GET /api/books?query=...`
-- `GET /api/books/<id>`
-- `POST /api/books`
-- `PATCH /api/books/<id>/issue`
-- `PATCH /api/books/<id>/return`
-- `DELETE /api/books/<id>`
-
-## Run Locally
-
-### 1. Run Backend (Flask API)
-
-1. Open terminal in `backend/`.
-2. Create and activate virtual environment.
-3. Install dependencies.
-4. Start API server.
-
+### 2. Set up the Backend
 ```bash
 cd backend
 python -m venv .venv
-.venv\Scripts\activate
+# On Windows use: .venv\Scripts\activate
+# On Mac/Linux use: source .venv/bin/activate
 pip install -r requirements.txt
+```
+
+Set up your environment variables by copying the example file:
+```bash
+cp ../.env.example .env
+```
+
+Start the Flask server:
+```bash
 python app.py
 ```
+*The API will run at `http://127.0.0.1:5000/api`*
 
-Backend runs at:
-
-```
-http://127.0.0.1:5000/api
-```
-
-### 2. Run Frontend
-
-Open a second terminal in `frontend/` and serve static files:
-
+### 3. Set up the Frontend
+Open a new terminal in the `frontend` folder and start a static server:
 ```bash
 cd frontend
 python -m http.server 5500
 ```
+Open `http://127.0.0.1:5500` in your browser. 
 
-Open:
+*Note: The frontend connects to `http://127.0.0.1:5000/api` by default.*
 
-```
-http://127.0.0.1:5500
-```
+## 🌍 Deployment
 
-In the UI, keep API URL as:
+- **Frontend:** Connect your GitHub repository to [Netlify](https://www.netlify.com/), set the publish directory to `frontend/`.
+- **Backend:** Connect your repository to [Render](https://render.com/), set the root directory to `backend/`, build command to `pip install -r requirements.txt`, and start command to `gunicorn app:app`.
+- **Environment Variables:** Ensure you set `CORS_ORIGINS` in your Render environment to match your Netlify URL, and set your `ADMIN_USERNAME` and `ADMIN_PASSWORD`.
 
-```
-http://127.0.0.1:5000/api
-```
-
-## Deploy Backend to Render
-
-1. Push your project to GitHub.
-2. In Render, create a new Web Service from your repo.
-3. Set Root Directory to `backend`.
-4. Build Command:
-
-```bash
-pip install -r requirements.txt
-```
-
-5. Start Command:
-
-```bash
-gunicorn app:app
-```
-
-6. Add environment variable:
-
-- `CORS_ORIGINS` = your Netlify site URL (or `*` during testing)
-
-After deployment, your backend URL will be like:
-
-```
-https://your-backend.onrender.com/api
+## 📂 Folder Structure
+```text
+Library Management System/
+├── backend/
+│   ├── routes/          # API route blueprints
+│   ├── app.py           # Flask application entry point
+│   ├── db.py            # SQLite connection and schema logic
+│   ├── utils.py         # Authentication and utility functions
+│   └── requirements.txt # Python dependencies
+├── frontend/
+│   ├── index.html       # Main UI markup
+│   ├── styles.css       # Modern styling & animations
+│   ├── app.js           # Core frontend logic and API integration
+│   └── config.js        # Environment-aware URL configuration
+├── screenshots/         # UI showcase images
+├── .env.example         # Environment variable template
+├── .gitignore           # Git ignore rules
+└── README.md            # Project documentation
 ```
 
-## Deploy Frontend to Netlify
-
-1. In Netlify, create a new site from GitHub.
-2. Select this repository.
-3. Netlify uses `netlify.toml`:
-
-- Base directory: `frontend`
-- Publish directory: `.`
-
-4. Deploy.
-5. Open the deployed site.
-6. In the "Backend API URL" field, enter your Render API URL:
-
-```
-https://your-backend.onrender.com/api
-```
-
-7. Click "Save URL".
-
-The frontend stores this URL in browser local storage and uses it for all requests.
-
-## Railway Option (Backend)
-
-You can deploy `backend/` to Railway with the same commands:
-
-- Install: `pip install -r requirements.txt`
-- Start: `gunicorn app:app`
-
-Set `CORS_ORIGINS` to your Netlify domain.
+## 👨‍💻 Author
+**Your Name**  
+*Aspiring Full Stack Developer*  
+[LinkedIn](#) | [GitHub](#)

@@ -17,9 +17,12 @@
             <button id="menuButton" class="menu-button" type="button" aria-label="Toggle navigation">Menu</button>
             <nav id="navMenu" class="nav-menu">
                 <a href="#home">Home</a>
-                <a href="#add-book">Add Book</a>
                 <a href="#all-books">View Books</a>
                 <a href="#search-books">Search</a>
+                <a href="#history" class="auth-only hidden">History</a>
+                <a href="#add-book" class="auth-only hidden">Add Book</a>
+                <a href="#login" id="navLoginBtn" class="public-only">Login</a>
+                <a href="#" id="navLogoutBtn" class="auth-only hidden">Logout</a>
             </nav>
         </div>
     </header>
@@ -27,12 +30,54 @@
     <main class="container page-main">
         <section id="flashMessage" class="flash-message hidden"></section>
 
-        <section id="home" class="panel">
-            <h2>Home</h2>
-            <p>Use the sections below to add, view, search, issue, and return books.</p>
+        <section id="dashboard" class="panel">
+            <div class="section-head">
+                <h2>Dashboard Overview</h2>
+            </div>
+            <div class="dashboard-cards">
+                <div class="card">
+                    <div class="card-icon blue">📚</div>
+                    <div class="card-info">
+                        <div class="card-title">Total Books</div>
+                        <div class="card-value" id="statTotal">-</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-icon green">✅</div>
+                    <div class="card-info">
+                        <div class="card-title">Available</div>
+                        <div class="card-value" id="statAvailable">-</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-icon orange">⏳</div>
+                    <div class="card-info">
+                        <div class="card-title">Issued</div>
+                        <div class="card-value" id="statIssued">-</div>
+                    </div>
+                </div>
+            </div>
         </section>
 
-        <section id="add-book" class="panel">
+        <section id="login" class="panel public-only">
+            <div class="section-head">
+                <h2>Admin Login</h2>
+                <p>Log in to add, issue, and return books.</p>
+            </div>
+            <form id="loginForm" class="form-grid" style="max-width: 400px;">
+                <div>
+                    <label for="username">Username</label>
+                    <input id="username" name="username" type="text" required>
+                </div>
+                <div>
+                    <label for="password">Password</label>
+                    <input id="password" name="password" type="password" required>
+                </div>
+                <button class="btn btn-primary" type="submit">Login</button>
+            </form>
+        </section>
+
+        <section id="add-book" class="panel auth-only hidden">
             <div class="section-head">
                 <h2>Add Book</h2>
                 <p>Add a book using title and author.</p>
@@ -89,7 +134,12 @@
             </div>
 
             <form id="searchForm" class="search-row">
-                <input id="searchQuery" type="text" maxlength="120" placeholder="Enter title to search" required>
+                <input id="searchQuery" type="text" maxlength="120" placeholder="Search by title or author...">
+                <select id="statusFilter" class="form-select">
+                    <option value="">All Statuses</option>
+                    <option value="available">Available</option>
+                    <option value="issued">Issued</option>
+                </select>
                 <button class="btn btn-accent" type="submit">Search</button>
             </form>
 
@@ -113,7 +163,46 @@
             </div>
             <p id="searchBooksEmpty" class="empty-text hidden">Search results will appear here.</p>
         </section>
+        <section id="history" class="panel auth-only hidden">
+            <div class="section-head">
+                <h2>Borrow History</h2>
+                <p>Recent borrowing activity.</p>
+            </div>
+            <div class="table-wrap">
+                <table class="books-table">
+                    <thead>
+                        <tr>
+                            <th>Book</th>
+                            <th>Borrower</th>
+                            <th>Borrow Date</th>
+                            <th>Return Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyBody">
+                        <tr class="skeleton-row"><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p id="historyEmpty" class="empty-text hidden">No history records found.</p>
+        </section>
     </main>
+
+    <!-- Issue Book Modal -->
+    <div id="issueModal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <h3>Issue Book</h3>
+            <p id="issueModalBookTitle" class="muted-text" style="margin-bottom: 12px;"></p>
+            <form id="issueForm">
+                <label for="borrowerName">Borrower Name</label>
+                <input id="borrowerName" type="text" required style="margin-bottom: 16px;">
+                <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-outline" id="closeIssueModal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Confirm Issue</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <script src="config.js"></script>
     <script src="app.js"></script>
