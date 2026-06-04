@@ -539,7 +539,7 @@ function startBackendWakeup() {
             if (res.ok) {
                 const data = await res.json().catch(() => null);
                 if (data && data.success) {
-                    console.log("Backend is awake!");
+
                     state.isBackendAwake = true;
                     updateServerStatus("online");
                     
