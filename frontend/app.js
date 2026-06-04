@@ -288,8 +288,9 @@ async function initializeApp() {
 
     hideMessage();
 
+    // Note: backend health is already confirmed by bootstrap.js before this
+    // function is called — no need to re-ping /health here.
     try {
-        await apiRequest("/health");
         await refreshDashboard();
         showMessage("Connected to backend API.", "success");
     } catch (error) {
