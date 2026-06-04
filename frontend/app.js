@@ -297,5 +297,6 @@ async function initializeApp() {
     }
 }
 
-
-initializeApp();
+// Expose initialize function for the bootstrapper. Do NOT auto-run here.
+// The bootstrap script will ensure the backend is awake before calling this.
+window.initializeApp = initializeApp;

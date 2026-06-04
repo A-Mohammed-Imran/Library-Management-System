@@ -56,7 +56,8 @@ def error_response(message, status_code=400):
 
 @app.get("/api/health")
 def health_check():
-    return jsonify({"success": True, "message": "API is running"})
+    # Ultra-lightweight health endpoint: no DB access, no heavy work
+    return jsonify({"success": True, "status": "healthy", "message": "Backend is running"}), 200
 
 
 @app.get("/api/stats")
